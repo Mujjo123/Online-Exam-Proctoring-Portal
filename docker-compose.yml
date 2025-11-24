@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: proctor_db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: proctor_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+
+  # Backend Spring Boot Application
+  backend:
+    build: ./proctor-backend
+    container_name: proctor_backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/proctor_db?useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # Frontend React Application
+  frontend:
+    build:
+      context: ./proctor-frontend
+      dockerfile: Dockerfile.dev
+    container_name: proctor_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./proctor-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ML Microservice
+  ml-service:
+    build: ./proctor-ml
+    container_name: proctor_ml
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  db_data:
